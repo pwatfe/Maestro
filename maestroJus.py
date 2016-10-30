@@ -1,88 +1,40 @@
+#!/usr/bin/python
 import serial
-#
-#---------------------------
-# Maestro Servo Controller
-#---------------------------
-#
-# Support for the Pololu Maestro line of servo controllers
-#
-# Steven Jacobs -- Aug 2013
-# https://github.com/FRC4564/Maestro/
-#
-# These functions provide access to many of the Maestro's capabilities using the
-# Pololu serial protocol
-#
-class Controller:
-    # When connected via USB, the Maestro creates two virtual serial ports
-    # /dev/ttyACM0 for commands and /dev/ttyACM1 for communications.
-    # Be sure the Maestro is configured for "USB Dual Port" serial mode.
-    # "USB Chained Mode" may work as well, but hasn't been tested.
-    #
-    # Pololu protocol allows for multiple Maestros to be connected to a single
-    # communication channel. Each connected device is then indexed by number.
-    # This device number defaults to 0x0C (or 12 in decimal), which this module
-    # assumes.  If two or more controllers are connected to different serial
-    # ports, or you are using a Windows OS, you can provide the port name.  For
-    # example, '/dev/ttyACM2' or for Windows, something like 'COM3'.
-    def __init__(self,ttyStr='/dev/ttyACM0'):
-        print "Se inicializa Maestro"
-        # Open the command port
-        self.usb = serial.Serial(ttyStr)
-        # Command lead-in and device 12 are sent for each Pololu serial commands.
-        self.PololuCmd = chr(0xaa) + chr(0xc)
-        # Track target position for each servo. The function isMoving() will
-        # use the Target vs Current servo position to determine if movement is
-        # occuring.  Upto 24 servos on a Maestro, (0-23). Targets start at 0.
-        self.Targets = [0] * 24
-        # Servo minimum and maximum targets can be restricted to protect components.
-        self.Mins = [0] * 24
-        self.Maxs = [0] * 24
-        
-    # Cleanup by closing USB serial port
-    def close(self):
-        self.usb.close()
+from maestro import Controller
 
-    # Set channels min and max value range.  Use this as a safety to protect
-    # from accidentally moving outside known safe parameters. A setting of 0
-    # allows unrestricted movement.
-    #
-    # ***Note that the Maestro itself is configured to limit the range of servo travel
-    # which has precedence over these values.  Use the Maestro Control Center to configure
-    # ranges that are saved to the controller.  Use setRange for software controllable ranges.
-    def setRange(self, chan, min, max):
-        self.Mins[chan] = min
-        self.Maxs[chan] = max
 
-    # Return Minimum channel range value
-    def getMin(self, chan):
-        return self.Mins[chan]
+class ControllerJus(Controller):
 
-    # Return Maximum channel range value
-    def getMax(self, chan):
-        return self.Maxs[chan]
-        
-    # Set channel to a specified target value.  Servo will begin moving based
-    # on Speed and Acceleration parameters previously set.
-    # Target values will be constrained within Min and Max range, if set.
-    # For servos, target represents the pulse width in of quarter-microseconds
-    # Servo center is at 1500 microseconds, or 6000 quarter-microseconds
-    # Typcially valid servo range is 3000 to 9000 quarter-microseconds
-    # If channel is configured for digital output, values < 6000 = Low ouput
-    def setTarget(self, chan, target):
+
+    def goAhead(self, cLeft, cRight):
+        targetLeft = 1
+        targetRight = 1
         # if Min is defined and Target is below, force to Min
-        if self.Mins[chan] > 0 and target < self.Mins[chan]:
-            target = self.Mins[chan]
+        if self.Mins[cLeft] > 0 and targetLeft < self.Mins[cLeft]:
+            targetLeft = self.Mins[cLeft]
         # if Max is defined and Target is above, force to Max
-        if self.Maxs[chan] > 0 and target > self.Maxs[chan]:
-            target = self.Maxs[chan]
-        #    
-        lsb = target & 0x7f #7 bits for least significant byte
-        msb = (target >> 7) & 0x7f #shift 7 and take next 7 bits for msb
+        if self.Maxs[cLeft] > 0 and targetLeft > self.Maxs[cLeft]:
+            targetLeft = self.Maxs[cLeft]
+        # if Min is defined and Target is below, force to Min
+        if self.Mins[cRight] > 0 and targetRight < self.Mins[cRight]:
+            targetRight = self.Mins[cRight]
+        # if Max is defined and Target is above, force to Max
+        if self.Maxs[cRight] > 0 and targetRight > self.Maxs[cRight]:
+            targetRight = self.Maxs[cRight]
+
+        lsbLeft = targetLeft & 0x7f #7 bits for least significant byte
+        msbLeft = (targetLeft >> 7) & 0x7f #shift 7 and take next 7 bits for msb
+        lsbRight = targetRight & 0x7f #7 bits for least significant byte
+        msbRight = (targetRight >> 7) & 0x7f #shift 7 and take next 7 bits for msb
         # Send Pololu intro, device number, command, channel, and target lsb/msb
-        cmd = self.PololuCmd + chr(0x04) + chr(chan) + chr(lsb) + chr(msb)
-        self.usb.write(cmd)
+        cmdLeft = self.PololuCmd + chr(0x04) + chr(cLeft) + chr(lsbLeft) + chr(msbLeft)
+        cmdRight = self.PololuCmd + chr(0x04) + chr(cRight) + chr(lsbRight + chr(msbRight)                          
+        self.usb.write(cmdLeft)
+        self.usb.write(cmdRight)
         # Record Target value
-        self.Targets[chan] = target
+        self.Targets[cLeft] = targetLeft
+        self.Targets[cRight] = targetRight
+    
         
     # Set speed of channel
     # Speed is measured as 0.25microseconds/10milliseconds
@@ -156,4 +108,4 @@ class Controller:
     def stopScript(self):
         cmd = self.PololuCmd + chr(0x24)
         self.usb.write(cmd)
-        
+

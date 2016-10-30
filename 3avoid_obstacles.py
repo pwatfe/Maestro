@@ -34,7 +34,7 @@ while (1):
                 s.setTarget(5,0)
 		time.sleep(turning)
 		print "Rotando para evitar obstaculo"
-		s.setTarget(4,-1)
+		s.setTarget(4,1)
 		s.setTarget(5,1)
         	time.sleep(turning)
                 s.setTarget(4,0)
@@ -48,7 +48,7 @@ while (1):
 	elif pos > distance:
 		break
 	else:
-		s.setTarget(4,1)
+		s.setTarget(4,-1)
 		s.setTarget(5,1)
 	print ""
 	time.sleep(avance)
