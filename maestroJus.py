@@ -1,14 +1,47 @@
 #!/usr/bin/python
-import serial
+
 from maestro import Controller
 
-
 class ControllerJus(Controller):
+    
+    leftDir = 1
+    rightDir = 1
 
+    def __init__(self, leftDir, rightDir):
+        Controller.__init__(self)
+        self.leftDir = leftDir
+        self.rightDir = rightDir
 
+    
     def goAhead(self, cLeft, cRight):
-        targetLeft = 1
-        targetRight = 1
+        targetLeft = 1*self.leftDir
+        targetRight = 1*self.rightDir
+        self.applyMove(targetLeft, targetRight, cLeft, cRight)
+
+
+    def goBack(self, cLeft, cRight):
+        targetLeft = -1*self.leftDir
+        targetRight = -1*self.rightDir
+        self.applyMove(targetLeft, targetRight, cLeft, cRight)
+
+    def stop(self, cLeft, cRight):
+        targetLeft = 0*self.leftDir
+        targetRight = 0*self.rightDir
+        self.applyMove(targetLeft, targetRight, cLeft, cRight)
+
+    def rotateLeft(self, cLeft, cRight):
+        targetLeft = -1*self.leftDir
+        targetRight = 1*self.rightDir
+        self.applyMove(targetLeft, targetRight, cLeft, cRight)
+
+    def rotateRight(self, cLeft, cRight):
+        targetLeft = 1*self.leftDir
+        targetRight = -1*self.rightDir
+        self.applyMove(targetLeft, targetRight, cLeft, cRight)
+
+    def applyMove(self, left, right, cLeft, cRight):
+        targetLeft = left
+        targetRight = right
         # if Min is defined and Target is below, force to Min
         if self.Mins[cLeft] > 0 and targetLeft < self.Mins[cLeft]:
             targetLeft = self.Mins[cLeft]
@@ -21,14 +54,13 @@ class ControllerJus(Controller):
         # if Max is defined and Target is above, force to Max
         if self.Maxs[cRight] > 0 and targetRight > self.Maxs[cRight]:
             targetRight = self.Maxs[cRight]
-
         lsbLeft = targetLeft & 0x7f #7 bits for least significant byte
         msbLeft = (targetLeft >> 7) & 0x7f #shift 7 and take next 7 bits for msb
         lsbRight = targetRight & 0x7f #7 bits for least significant byte
         msbRight = (targetRight >> 7) & 0x7f #shift 7 and take next 7 bits for msb
         # Send Pololu intro, device number, command, channel, and target lsb/msb
         cmdLeft = self.PololuCmd + chr(0x04) + chr(cLeft) + chr(lsbLeft) + chr(msbLeft)
-        cmdRight = self.PololuCmd + chr(0x04) + chr(cRight) + chr(lsbRight + chr(msbRight)                          
+        cmdRight = self.PololuCmd + chr(0x04) + chr(cRight) + chr(lsbRight) + chr(msbRight)                          
         self.usb.write(cmdLeft)
         self.usb.write(cmdRight)
         # Record Target value

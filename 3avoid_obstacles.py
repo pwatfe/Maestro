@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
 import time
-import maestro as m
+import maestroJus as m
 
 # Crear objeto MicroMaestro
-s= m.Controller()
+s= m.ControllerJus(-1,1)
 
 # Asignacion de canales
 sharp = 0
@@ -19,6 +19,8 @@ avance = 0.5
 turning = 0.75
 stopped= 0.5
 
+s.setAccel(4,1)
+
 # Lecturas de distancia a obstaculo antes de arrancar
 iter=1
 while (1):
@@ -30,15 +32,12 @@ while (1):
 	print "Distancia (600-0)=",pos
 	if pos > distance:
 		print "Me paro pq hay obstaculo"
-                s.setTarget(4,0)
-                s.setTarget(5,0)
+                s.stop(4,5)
 		time.sleep(turning)
 		print "Rotando para evitar obstaculo"
-		s.setTarget(4,1)
-		s.setTarget(5,1)
+		s.rotateLeft(4,5)
         	time.sleep(turning)
-                s.setTarget(4,0)
-                s.setTarget(5,0)
+                s.stop(4,5)
 		time.sleep(stopped)
 
 		pos_min = s.getPosition(0)
@@ -48,7 +47,6 @@ while (1):
 	elif pos > distance:
 		break
 	else:
-		s.setTarget(4,-1)
-		s.setTarget(5,1)
+		s.goAhead(4,5)
 	print ""
 	time.sleep(avance)
